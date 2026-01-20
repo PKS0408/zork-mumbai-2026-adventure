@@ -1,6 +1,6 @@
-#the site is live at https://pks0408.github.io/zork-mumbai-2026-adventure/
+#The site is live at    https://pks0408.github.io/zork-mumbai-2026-adventure/
 # 🕹️ Project Zork: Mumbai 2026
-**Developer:** Prabhav Kumar Sahu
+**Developer:** Prabhav Kumar Sahu, 25CS3045
 **Institute:** Rajiv Ganghi Institute of Technology 
 **Challenge:** Dev Club AI Challenge 2026  
 **Tech Stack:** Gemini 2.5 Flash + Vanilla JS + CSS3 (CRT Shader)
@@ -45,3 +45,4 @@ I built a **CRT Terminal Emulator** using custom CSS to capture the 80s aestheti
 **Prabhav Kumar Sahu** – CSE RGIPT 
 
 Built for the Dev Club AI Challenge 2026.
+

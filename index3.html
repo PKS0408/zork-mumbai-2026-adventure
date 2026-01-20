@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite AI Adventure - Neer Astra</title>
+    <style>
+        /* 1. Retro CRT Styling & Layout */
+        body { 
+            background-color: #050505; color: #00ff41; 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; 
+            height: 100vh; margin: 0; overflow: hidden;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        #game-container { 
+            width: 85%; max-width: 900px; height: 70vh; margin-top: 30px; 
+            border: 2px solid #00ff41; padding: 25px; overflow-y: auto; 
+            background: rgba(0, 20, 0, 0.1); position: relative;
+            animation: flicker 0.15s infinite; transition: all 0.3s ease;
+        }
+        #game-container::before {
+            content: " "; display: block; position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 2; background-size: 100% 3px, 3px 100%; pointer-events: none;
+        }
+        #story-display { white-space: pre-wrap; line-height: 1.5; font-size: 1.1rem; position: relative; z-index: 1; }
+        #input-area { display: flex; width: 85%; max-width: 950px; margin-top: 20px; gap: 10px; }
+        input { 
+            flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; 
+            padding: 12px; font-family: inherit; outline: none;
+        }
+        button { 
+            background: #00ff41; color: #000; border: none; padding: 10px 25px; 
+            cursor: pointer; font-weight: bold; text-transform: uppercase;
+        }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .loading { color: #008f11; font-style: italic; margin-top: 10px; }
+
+        /* 2. Visual FX: Damage Shake & Pulse */
+        .damage-shake { animation: shake-screen 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake-screen {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        .critical-pulse { 
+            box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.5) !important; 
+            border-color: #ff0000 !important; color: #ff4d4d !important; 
+        }
+        @keyframes flicker { 0% { opacity: 0.98; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="story-display">Initializing Neural Link...</div>
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Enter command..." autofocus>
+        <button id="exec-btn" onclick="handleAction()">Execute</button>
+    </div>
+
+    <script type="module">
+        // Using the 2026 Unified SDK
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
+
+        const API_KEY = "AIzaSyBprJMCle2t0UxGkFUF3SO5R9R6RXvPbfE"; 
+        const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+        let gameHistory = [];
+        let lastHealth = 100;
+
+        async function handleAction(retryAction = null) {
+            const btn = document.getElementById('exec-btn');
+            const inputField = document.getElementById('user-input');
+            const display = document.getElementById('story-display');
+            const container = document.getElementById('game-container');
+            
+            const userAction = retryAction || inputField.value || "Start the game in Mumbai 2026 ruins.";
+            
+            // UI Feedback and Rate Limit Safety
+            btn.disabled = true;
+            if (!retryAction) {
+                display.innerHTML += `\n\n> ${userAction}\n`;
+                gameHistory.push({ role: 'user', parts: [{ text: userAction }] });
+            }
+            
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'loading';
+            loadingMsg.innerText = "Processing Neural Input...";
+            display.appendChild(loadingMsg);
+            inputField.value = "";
+
+            try {
+                // Option 2: High-Quality Model with Prompt Engineering
+                const response = await ai.models.generateContent({
+                    model: "gemini-2.5-flash", 
+                    contents: gameHistory,
+                    config: {
+                        systemInstruction: `You are the Neer Astra Retro RPG Engine. 
+                        SETTING: Mumbai 2026 ruins. 
+                        VIBE: Gritty, sensory, atmospheric. Use Mumbai-specific details (BEST buses, sea breeze, Vada Pav).
+                        RULES: 
+                        1. Track Health (100) and Dread (0). 
+                        2. NEVER break character. 
+                        3. ALWAYS format: [SCENE], [STATUS: Health/Dread], [CHOICES: 1, 2, 3].`
+                    }
+                });
+
+                loadingMsg.remove();
+                const aiText = response.text;
+                display.innerHTML += aiText;
+                
+                // --- Visual FX Logic ---
+                const statusMatch = aiText.match(/STATUS: (\d+)\/(\d+)/);
+                if (statusMatch) {
+                    const health = parseInt(statusMatch[1]);
+                    if (health < lastHealth) {
+                        container.classList.add('damage-shake');
+                        setTimeout(() => container.classList.remove('damage-shake'), 500);
+                    }
+                    if (health < 30) container.classList.add('critical-pulse');
+                    else container.classList.remove('critical-pulse');
+                    lastHealth = health;
+                }
+
+                gameHistory.push({ role: 'model', parts: [{ text: aiText }] });
+                container.scrollTop = container.scrollHeight;
+
+                // 10-second button cooldown to respect free-tier rate limits
+                setTimeout(() => { btn.disabled = false; }, 10000);
+
+            } catch (error) {
+                loadingMsg.remove();
+                
+                // Exponential Backoff: Handling Rate Limits (429)
+                if (error.message.includes("429") || error.message.includes("quota")) {
+                    const retryTimer = document.createElement('div');
+                    retryTimer.className = 'loading';
+                    retryTimer.innerText = "LINK CONGESTED: Auto-retry in 10s...";
+                    display.appendChild(retryTimer);
+                    
+                    setTimeout(() => { 
+                        retryTimer.remove(); 
+                        handleAction(userAction); 
+                    }, 10000);
+                } else {
+                    display.innerHTML += `\n[NEURAL ERROR]: ${error.message}`;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        window.handleAction = handleAction;
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !document.getElementById('exec-btn').disabled) handleAction();
+        });
+        window.onload = () => handleAction();
+    </script>
+</body>
+</html>
